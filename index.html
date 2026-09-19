@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="app-version" content="0.1.0">
+<title>USA Free WiFi Tracker — Admin</title>
+<meta name="description" content="Privileged backend for the USA Free WiFi Tracker (cwfqosd) -- analytics, moderation, exports.">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --panel2:#1e2229; --border:#2a2f3a;
+    --text:#eef0f3; --muted:#9aa3b2; --accent:#3ddc97; --accent2:#5b8cff;
+    --warn:#f5b942; --danger:#ff6b6b; --radius:12px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  a{color:var(--accent2);}
+  header{padding:20px 16px 12px;border-bottom:1px solid var(--border);}
+  header .eyebrow{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em;}
+  header h1{margin:6px 0 4px;font-size:26px;}
+  .wrap{max-width:1100px;margin:0 auto;padding:0 16px 60px;}
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin:18px 0;}
+  input,select,textarea{background:var(--panel2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:9px 12px;font-size:14px;font-family:inherit;}
+  button{cursor:pointer;border:1px solid var(--border);background:var(--panel2);color:var(--text);border-radius:8px;padding:9px 14px;font-size:14px;font-weight:600;font-family:inherit;}
+  button.primary{background:var(--accent2);border-color:var(--accent2);color:#fff;}
+  button.danger{background:#2a1616;border-color:#5c1919;color:var(--danger);}
+  button:disabled{opacity:.5;cursor:wait;}
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0;}
+  .tab-btn{background:var(--panel2);border:1px solid var(--border);border-radius:999px;padding:8px 16px;font-size:13px;color:var(--muted);cursor:pointer;}
+  .tab-btn.active{background:var(--accent2);border-color:var(--accent2);color:#fff;}
+  .tab-view{display:none;}
+  .tab-view.active{display:block;}
+  .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;}
+  .stat-card{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:14px;}
+  .stat-card .num{font-size:26px;font-weight:700;color:var(--accent);}
+  .stat-card .label{font-size:12px;color:var(--muted);margin-top:2px;}
+  table{width:100%;border-collapse:collapse;margin-top:10px;}
+  th{text-align:left;font-size:11px;text-transform:uppercase;color:var(--muted);padding:8px 10px;border-bottom:1px solid var(--border);}
+  td{padding:10px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:top;}
+  .muted{color:var(--muted);}
+  .status-line{font-size:13px;color:var(--muted);margin-top:10px;}
+  .status-line.err{color:var(--danger);}
+  .center-box{max-width:420px;margin:60px auto;text-align:center;}
+  .center-box input{width:100%;margin-bottom:10px;}
+  code{background:var(--panel2);padding:1px 6px;border-radius:5px;}
+  .backend-banner{padding:8px 14px;border-radius:8px;font-size:12.5px;border:1px solid var(--border);margin-bottom:14px;}
+  .backend-banner.mode-local{background:#20232b;color:var(--muted);}
+  .backend-banner.mode-connecting{background:#20232b;color:var(--warn);}
+  .backend-banner.mode-live{background:#12261d;color:var(--accent);border-color:#1f4a37;}
+  .backend-banner.mode-error{background:#2a1616;color:var(--danger);}
+  @media print{
+    body *{visibility:hidden;}
+    #printArea, #printArea *{visibility:visible;}
+    #printArea{position:absolute;left:0;top:0;width:100%;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap" style="padding:0;">
+    <div class="eyebrow">cwfqosp · privileged backend for cwfqosd</div>
+    <h1>🔐 USA Free WiFi Tracker — Admin</h1>
+  </div>
+</header>
+
+<div class="wrap">
+  <div id="backendBanner" class="backend-banner mode-local">Checking backend…</div>
+
+  <div id="notConfiguredBox" class="panel" style="display:none;">
+    <h2 style="margin-top:0;">No backend connected yet</h2>
+    <p class="muted">
+      This admin app needs a Supabase project to do anything useful — without one there's nothing
+      to show (unlike <code>cwfqosd</code>, this app has no local-demo-mode fallback, since its
+      whole point is cross-visitor analytics that local-only storage can't provide).
+    </p>
+    <p class="muted">
+      1. Create a free project at <a href="https://supabase.com" target="_blank" rel="noopener">supabase.com</a>.<br>
+      2. Run <code>schema.sql</code> (in this repo) in its SQL Editor.<br>
+      3. Copy the Project URL + <code>anon public</code> key into <code>SUPABASE_CONFIG</code> near
+      the top of this file's <code>&lt;script&gt;</code> block — and into <code>cwfqosd/index.html</code>'s
+      too, so the two apps share data.<br>
+      4. See README.md, "Bootstrapping your own admin account," for the last step.
+    </p>
+  </div>
+
+  <div id="authBox" class="center-box" style="display:none;">
+    <h2>Sign in</h2>
+    <p class="muted" style="font-size:13px;">Password sign-in only for now (bootstrap). See README to link Google/passkey afterward.</p>
+    <input id="authEmail" type="email" placeholder="you@example.com">
+    <input id="authPassword" type="password" placeholder="Password">
+    <div style="display:flex;gap:8px;">
+      <button class="primary" id="signInBtn" style="flex:1;">Sign in</button>
+      <button id="signUpBtn" style="flex:1;">Create account</button>
+    </div>
+    <div class="status-line" id="authStatus"></div>
+  </div>
+
+  <div id="notAdminBox" class="panel" style="display:none;">
+    <h2 style="margin-top:0;">Signed in, but not an admin yet</h2>
+    <p class="muted">
+      Your account exists but isn't listed in the <code>admins</code> table, so Row Level Security
+      is correctly denying you access to everything below. See README.md, "Bootstrapping your own
+      admin account," to add your user id with <code>role = 'global_admin'</code>.
+    </p>
+    <button id="signOutBtn2">Sign out</button>
+  </div>
+
+  <div id="appBox" style="display:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div class="muted" id="whoami" style="font-size:13px;"></div>
+      <button id="signOutBtn">Sign out</button>
+    </div>
+
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="overview">Overview</button>
+      <button class="tab-btn" data-tab="moderation">Moderation</button>
+      <button class="tab-btn" data-tab="export">Export</button>
+    </div>
+
+    <div class="tab-view active" id="tab-overview">
+      <div class="panel">
+        <div class="stat-grid" id="statGrid"></div>
+      </div>
+      <div class="panel">
+        <h2 style="margin-top:0;font-size:16px;">Most-reported spots</h2>
+        <table id="topSpotsTable">
+          <thead><tr><th>Spot</th><th>Ratings</th><th>Avg ★</th><th>Latest status</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="tab-view" id="tab-moderation">
+      <div class="panel">
+        <h2 style="margin-top:0;font-size:16px;">Recent reports</h2>
+        <p class="muted" style="font-size:12.5px;">Flat table on purpose — no fixed geography hierarchy to drill through the way the ISP trackers do (see README).</p>
+        <table id="modTable">
+          <thead><tr><th>Type</th><th>Spot</th><th>Detail</th><th>When</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="tab-view" id="tab-export">
+      <div class="panel">
+        <h2 style="margin-top:0;font-size:16px;">Formatted reports</h2>
+        <p class="muted" style="font-size:12.5px;">Export/download tools live only here — never on the public demo, per the family convention.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="primary" id="exportQosBtn">⬇️ Export ratings CSV</button>
+          <button class="primary" id="exportStatusBtn">⬇️ Export status reports CSV</button>
+          <button id="printBtn">🖨️ Print / Save summary as PDF</button>
+        </div>
+      </div>
+      <div class="panel" id="printArea">
+        <h2 style="margin-top:0;font-size:16px;">Summary report</h2>
+        <div id="printSummary" class="muted" style="font-size:13px;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  const SITE_ID = "us";
+
+  const SUPABASE_CONFIG = {
+    url: "YOUR_SUPABASE_PROJECT_URL",
+    anonKey: "YOUR_SUPABASE_ANON_PUBLIC_KEY"
+  };
+  const BACKEND_CONFIGURED = SUPABASE_CONFIG.url.indexOf("http") === 0
+    && SUPABASE_CONFIG.anonKey && SUPABASE_CONFIG.anonKey.indexOf("YOUR_") !== 0;
+
+  let supa = null;
+  if (BACKEND_CONFIGURED && window.supabase){
+    supa = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+  }
+
+  const $ = (id) => document.getElementById(id);
+  const banner = $("backendBanner");
+
+  function show(el, on){ el.style.display = on ? "" : "none"; }
+
+  let qosReports = [];
+  let statusReports = [];
+  let currentUserId = null;
+
+  const STATUS_LABEL = { live: "Live", partial: "Partial", down: "Down", unconfirmed: "Unconfirmed" };
+
+  async function loadData(){
+    const [qosRes, statusRes] = await Promise.all([
+      supa.from("wifi_qos_reports").select("*").eq("site", SITE_ID).order("created_at", { ascending: false }).limit(2000),
+      supa.from("wifi_status_reports").select("*").eq("site", SITE_ID).order("created_at", { ascending: false }).limit(2000)
+    ]);
+    qosReports = qosRes.data || [];
+    statusReports = statusRes.data || [];
+    renderOverview();
+    renderModeration();
+  }
+
+  function renderOverview(){
+    const totalRatings = qosReports.length;
+    const avgStars = totalRatings ? (qosReports.reduce((s, r) => s + r.stars, 0) / totalRatings).toFixed(2) : "—";
+    const totalStatus = statusReports.length;
+    const downCount = statusReports.filter(r => r.status === "down").length;
+
+    $("statGrid").innerHTML = [
+      { num: totalRatings, label: "Total ratings" },
+      { num: avgStars, label: "Average stars" },
+      { num: totalStatus, label: "Status reports" },
+      { num: downCount, label: '"Down" reports' }
+    ].map(s => `<div class="stat-card"><div class="num">${s.num}</div><div class="label">${s.label}</div></div>`).join("");
+
+    const bySpot = {};
+    qosReports.forEach(r => {
+      bySpot[r.osm_id] = bySpot[r.osm_id] || { name: r.spot_name, stars: [], osm_id: r.osm_id };
+      bySpot[r.osm_id].stars.push(r.stars);
+    });
+    const latestStatusBySpot = {};
+    statusReports.forEach(r => {
+      if (!latestStatusBySpot[r.osm_id] || new Date(r.created_at) > new Date(latestStatusBySpot[r.osm_id].created_at)){
+        latestStatusBySpot[r.osm_id] = r;
+      }
+    });
+    const top = Object.values(bySpot).sort((a, b) => b.stars.length - a.stars.length).slice(0, 15);
+    $("topSpotsTable").querySelector("tbody").innerHTML = top.map(s => {
+      const avg = (s.stars.reduce((a, b) => a + b, 0) / s.stars.length).toFixed(1);
+      const latest = latestStatusBySpot[s.osm_id];
+      return `<tr><td>${escapeHtml(s.name)}</td><td>${s.stars.length}</td><td>★${avg}</td><td>${latest ? STATUS_LABEL[latest.status] : "—"}</td></tr>`;
+    }).join("") || `<tr><td colspan="4" class="muted">No ratings yet.</td></tr>`;
+  }
+
+  function renderModeration(){
+    const rows = [
+      ...qosReports.map(r => ({ type: "Rating", spot: r.spot_name, detail: "★" + r.stars + (r.comment ? " — " + r.comment : ""), when: r.created_at, table: "wifi_qos_reports", id: r.id })),
+      ...statusReports.map(r => ({ type: "Status", spot: r.spot_name, detail: STATUS_LABEL[r.status], when: r.created_at, table: "wifi_status_reports", id: r.id }))
+    ].sort((a, b) => new Date(b.when) - new Date(a.when)).slice(0, 200);
+
+    $("modTable").querySelector("tbody").innerHTML = rows.map(r => `
+      <tr>
+        <td>${r.type}</td>
+        <td>${escapeHtml(r.spot)}</td>
+        <td>${escapeHtml(r.detail)}</td>
+        <td class="muted">${new Date(r.when).toLocaleString()}</td>
+        <td><button class="danger" data-table="${r.table}" data-id="${r.id}" data-role="delrow">Delete</button></td>
+      </tr>
+    `).join("") || `<tr><td colspan="5" class="muted">No reports yet.</td></tr>`;
+
+    $("modTable").querySelectorAll('[data-role="delrow"]').forEach(btn => {
+      btn.addEventListener("click", async () => {
+        if (!confirm("Delete this report? This can't be undone.")) return;
+        btn.disabled = true;
+        const { error } = await supa.from(btn.dataset.table).delete().eq("id", btn.dataset.id);
+        if (error){ alert("Delete failed: " + error.message); btn.disabled = false; return; }
+        await supa.from("admin_audit_log").insert({ actor: currentUserId, action: "delete_report", detail: { table: btn.dataset.table, id: btn.dataset.id } });
+        await loadData();
+      });
+    });
+  }
+
+  function escapeHtml(str){
+    return String(str).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+  }
+
+  function toCsv(rows, headers){
+    const lines = [headers.join(",")];
+    rows.forEach(r => lines.push(headers.map(h => `"${String(r[h] ?? "").replace(/"/g, '""')}"`).join(",")));
+    return lines.join("\n");
+  }
+  function downloadCsv(text, filename){
+    const blob = new Blob([text], { type: "text/csv" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+  }
+
+  $("exportQosBtn").addEventListener("click", () => {
+    downloadCsv(toCsv(qosReports, ["id","osm_id","spot_name","category","lat","lon","search_location","stars","comment","created_at"]), "cwfqos_ratings.csv");
+  });
+  $("exportStatusBtn").addEventListener("click", () => {
+    downloadCsv(toCsv(statusReports, ["id","osm_id","spot_name","lat","lon","status","created_at"]), "cwfqos_status_reports.csv");
+  });
+  $("printBtn").addEventListener("click", () => {
+    const totalRatings = qosReports.length;
+    const avgStars = totalRatings ? (qosReports.reduce((s, r) => s + r.stars, 0) / totalRatings).toFixed(2) : "—";
+    $("printSummary").innerHTML = `
+      <p>Generated ${new Date().toLocaleString()}</p>
+      <p>Total ratings: ${totalRatings} · Average stars: ${avgStars} · Status reports: ${statusReports.length}</p>
+    `;
+    window.print();
+  });
+
+  document.querySelectorAll(".tab-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+      document.querySelectorAll(".tab-view").forEach(v => v.classList.remove("active"));
+      btn.classList.add("active");
+      $("tab-" + btn.dataset.tab).classList.add("active");
+    });
+  });
+
+  // ---------- auth flow ----------
+  async function checkAdminAndRender(session){
+    if (!session){
+      currentUserId = null;
+      show($("authBox"), true); show($("notAdminBox"), false); show($("appBox"), false);
+      return;
+    }
+    currentUserId = session.user.id;
+    const { data, error } = await supa.from("admins").select("role").eq("id", session.user.id).maybeSingle();
+    if (error || !data){
+      show($("authBox"), false); show($("notAdminBox"), true); show($("appBox"), false);
+      return;
+    }
+    show($("authBox"), false); show($("notAdminBox"), false); show($("appBox"), true);
+    $("whoami").textContent = session.user.email + " · " + data.role;
+    await loadData();
+  }
+
+  async function init(){
+    if (!BACKEND_CONFIGURED || !supa){
+      banner.className = "backend-banner mode-error";
+      banner.textContent = "⚠️ No Supabase backend configured yet.";
+      show($("notConfiguredBox"), true);
+      return;
+    }
+    banner.className = "backend-banner mode-live";
+    banner.textContent = "🟢 Connected.";
+    const { data: { session } } = await supa.auth.getSession();
+    await checkAdminAndRender(session);
+    supa.auth.onAuthStateChange((_event, session) => { checkAdminAndRender(session); });
+  }
+
+  $("signInBtn").addEventListener("click", async () => {
+    $("authStatus").textContent = "Signing in…"; $("authStatus").className = "status-line";
+    const { error } = await supa.auth.signInWithPassword({ email: $("authEmail").value, password: $("authPassword").value });
+    if (error){ $("authStatus").textContent = error.message; $("authStatus").className = "status-line err"; }
+  });
+  $("signUpBtn").addEventListener("click", async () => {
+    $("authStatus").textContent = "Creating account…"; $("authStatus").className = "status-line";
+    const { error } = await supa.auth.signUp({ email: $("authEmail").value, password: $("authPassword").value });
+    if (error){ $("authStatus").textContent = error.message; $("authStatus").className = "status-line err"; }
+    else { $("authStatus").textContent = "Account created. If email confirmation is on, check your inbox, then sign in."; }
+  });
+  $("signOutBtn").addEventListener("click", () => supa.auth.signOut());
+  $("signOutBtn2").addEventListener("click", () => supa.auth.signOut());
+
+  init();
+})();
+</script>
+</body>
+</html>
