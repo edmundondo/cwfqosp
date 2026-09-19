@@ -168,8 +168,8 @@
   const SITE_ID = "us";
 
   const SUPABASE_CONFIG = {
-    url: "YOUR_SUPABASE_PROJECT_URL",
-    anonKey: "YOUR_SUPABASE_ANON_PUBLIC_KEY"
+    url: "https://etdxreehedewcctkdvuo.supabase.co",
+    anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV0ZHhyZWVoZWRld2NjdGtkdnVvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYzOTkwMDQsImV4cCI6MjEwMTk3NTAwNH0.8ohFQBJzglP2cjsdQW-xQ-g2DPNG0iZiNzRTLQDsVMY"
   };
   const BACKEND_CONFIGURED = SUPABASE_CONFIG.url.indexOf("http") === 0
     && SUPABASE_CONFIG.anonKey && SUPABASE_CONFIG.anonKey.indexOf("YOUR_") !== 0;
@@ -255,7 +255,7 @@
         btn.disabled = true;
         const { error } = await supa.from(btn.dataset.table).delete().eq("id", btn.dataset.id);
         if (error){ alert("Delete failed: " + error.message); btn.disabled = false; return; }
-        await supa.from("admin_audit_log").insert({ actor: currentUserId, action: "delete_report", detail: { table: btn.dataset.table, id: btn.dataset.id } });
+        await supa.from("admin_audit_log").insert({ actor_user_id: currentUserId, action: "delete_report", site: SITE_ID, detail: { table: btn.dataset.table, id: btn.dataset.id } });
         await loadData();
       });
     });
@@ -311,7 +311,7 @@
       return;
     }
     currentUserId = session.user.id;
-    const { data, error } = await supa.from("admins").select("role").eq("id", session.user.id).maybeSingle();
+    const { data, error } = await supa.from("admins").select("role").eq("user_id", session.user.id).maybeSingle();
     if (error || !data){
       show($("authBox"), false); show($("notAdminBox"), true); show($("appBox"), false);
       return;

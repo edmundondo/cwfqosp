@@ -6,39 +6,43 @@ tier for analytics, moderation, and exports.** Unlike `cwfqosd`, this app has no
 fallback — its entire point is seeing everyone's reports, which local-only storage can't provide —
 so it does nothing useful until a Supabase project is actually connected.
 
-## Setup
+## Setup — status: done, live as of 2026-09-19
 
-1. **Create a Supabase project.** Free tier at [supabase.com](https://supabase.com), no credit card
-   required. You can reuse this project for both `cwfqosd` and `cwfqosp` (they need the same
-   `SUPABASE_CONFIG`) — or, if you'd rather keep this vertical fully separate from the
-   `*ispqos*` ISP-tracker family's Supabase project, create a brand-new one. Either works: this
-   schema's table names (`wifi_*`) don't collide with that family's (`qos_reports`/`status_reports`/
-   etc.), so it's also safe to run against that same shared project if you'd prefer one Supabase
-   project for everything.
-2. **Run the migration.** Open **SQL Editor → New query** in the Supabase dashboard, paste in the
-   full contents of `schema.sql`, and run it. This creates `admins`, `wifi_qos_reports`,
-   `wifi_status_reports`, and `admin_audit_log`, each with Row Level Security enabled — public can
-   insert and read reports, only admins can moderate or delete.
-   - **A note on how this was verified**: this SQL was reviewed statically (balanced
-     parens/quotes/`$$` blocks, correct `INSERT`-policy-uses-`WITH CHECK`-only /
-     `SELECT`-policy-uses-`USING`-only rules) but this session had no way to actually execute it
-     against a real Postgres instance (no root access to install `postgresql` locally, and the
-     sandbox's network allowlist blocks fetching a portable Postgres binary). Supabase's own SQL
-     Editor will surface any real syntax error immediately and clearly if one slipped through — run
-     it there first, and if it errors, that's the thing to fix, not evidence this README is wrong.
-3. **Get your API credentials.** **Project Settings → API**, copy the **Project URL** and the
-   **anon public** key (safe to ship client-side — RLS is what actually enforces permissions, same
-   principle as the rest of this project's family).
-4. **Wire up both apps.** Open this file's `index.html` and `cwfqosd/index.html`, find the
-   `SUPABASE_CONFIG` object near the top of each `<script>` block, and paste in the same Project URL
-   and anon key in both.
-5. **Create your own login.** Open `cwfqosp/index.html` in a browser, use the "Create account" form
-   (password sign-in — this bootstraps a normal Supabase Auth user, not an admin yet).
-6. **Bootstrap your own admin account.** In the Supabase dashboard, **Table Editor → admins →
-   Insert row**: `id` = your new user's UUID (find it under **Authentication → Users**), `role` =
-   `global_admin`, `scope` = `{}` (unused for `global_admin`, only meaningful for `country_admin`).
-   Reload `cwfqosp/index.html` and sign in — you should now see the full admin app.
-7. **Commit and push.** If using GitHub Pages, it redeploys automatically.
+Both apps are already wired up and connected. Nothing below needs to be re-run for the current
+deployment — this section is kept as a record of what happened and as a reference if you ever set
+this up again against a different project.
+
+1. **Project used: the existing shared `zwispqosdb` Supabase project**, the same one the
+   `*ispqos*` ISP-tracker family uses (Ed chose to reuse it rather than create a dedicated one,
+   since the table names don't collide). `SUPABASE_CONFIG` in both `index.html` files already
+   points at it.
+2. **Migration applied.** Only `wifi_qos_reports` and `wifi_status_reports` were created (with
+   RLS: public insert + read, admin full access via the existing `has_write_access(site)`).
+   `admins`, `is_admin()`, `has_write_access()`, and `admin_audit_log` were **not** recreated —
+   they already existed in this project from the ISP-tracker family. See the big comment block at
+   the top of `schema.sql` for the full story, including a schema mismatch that was caught and
+   fixed (this project's `admins` table is keyed on `user_id`, not `id`, and has extra break-glass
+   columns) — `cwfqosp/index.html` was updated to match the real column names.
+3. **Admin access: already working, no bootstrap step needed.** Ed's Supabase Auth account
+   (`edmundondo@gmail.com`) already has a `global_admin` row in this shared `admins` table with
+   `break_glass_active = true` from earlier ISP-tracker work — so signing in to `cwfqosp/index.html`
+   with that same account gives full admin access immediately, including Moderation deletes (which
+   require `break_glass_active = true`, not just `role = 'global_admin'`, per this project's
+   `has_write_access()` definition).
+4. **Commit and push.** Already done — if using GitHub Pages, it redeploys automatically on the
+   next push.
+
+### If you ever point these apps at a different project instead
+
+- **Reusing another existing zwispqos-family project**: run only the `wifi_qos_reports` /
+  `wifi_status_reports` block from `schema.sql` (Scenario A) — skip `admins`/functions/audit log,
+  they'll already be there, and adjust `index.html`'s admin queries to match that project's real
+  `admins` schema (check with the same `information_schema.columns` query used when this was set
+  up, don't assume `user_id` vs `id`).
+- **Starting from a brand-new, fully independent Supabase project**: run the full Scenario B block
+  in `schema.sql`, which creates its own `id`-keyed `admins` table and functions from scratch —
+  then follow the original bootstrap steps (create account, insert an `admins` row manually via
+  Table Editor with `role = 'global_admin'`).
 
 ## What's here (v0.1.0)
 

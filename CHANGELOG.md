@@ -3,6 +3,25 @@
 All notable changes to `cwfqosp` are documented here, in the
 [Keep a Changelog](https://keepachangelog.com/) style already used across the `*ispqos*` family.
 
+## [0.2.0] - 2026-09-19
+
+### Changed
+- Connected to the shared `zwispqosdb` Supabase project (`SUPABASE_CONFIG` wired up). Reused the
+  project's existing `admins` / `is_admin()` / `has_write_access()` / `admin_audit_log` instead of
+  creating a second, conflicting set — only `wifi_qos_reports` and `wifi_status_reports` were newly
+  created.
+- Fixed `index.html` to query `admins` by `user_id` (not `id`) and write `admin_audit_log` using
+  its real columns (`actor_user_id`, `site`), matching this project's actual schema — caught when
+  the original `id`-keyed migration failed against the existing table.
+- `schema.sql` rewritten to document both the reused-shared-project path (what's actually live) and
+  the from-scratch path (for a brand-new, independent project).
+
+### Known limitation carried over
+- `has_write_access()` on this shared project requires `break_glass_active = true` for
+  `global_admin`, not just the role — an admin bootstrapped elsewhere without break-glass active
+  will see the app but Moderation deletes will fail at the RLS layer. Ed's own account already has
+  `break_glass_active = true`.
+
 ## [0.1.0] - 2026-09-19
 
 ### Added

@@ -1,12 +1,45 @@
 -- cwfqosp / cwfqosd shared Supabase schema
--- USA Free WiFi Tracker — additive migration, safe to run against either a brand-new Supabase
--- project or (as a separate set of tables, scoped by its own "site" values) the existing shared
--- project used by the *ispqos* ISP-tracker family — the table names here (wifi_*) don't collide
--- with that family's (qos_reports/status_reports/etc.), and the RLS model is the same one
--- documented in zwispqosp/SCHEMA.md, just re-applied to this vertical.
+-- USA Free WiFi Tracker.
 --
--- Run this once, in Supabase's SQL Editor ("New query"), against whichever project you point
--- cwfqosd/index.html's and cwfqosp/index.html's SUPABASE_CONFIG at.
+-- THIS PROJECT IS LIVE: cwfqosd/index.html and cwfqosp/index.html are already wired to the
+-- shared "zwispqosdb" Supabase project (the same one the zwispqos/ISP-tracker family uses), and
+-- the tables below are already created there. You do not need to run anything to get started.
+--
+-- IMPORTANT — what actually happened when this was set up (2026-09-19): the original version of
+-- this file (see git history) assumed a brand-new project and included its own `admins` table
+-- plus `is_admin()`/`has_write_access(p_site)` functions with an `id`-keyed admins schema. When
+-- applied against the existing shared zwispqosdb project, that failed — `admins` already existed
+-- there from the ISP-tracker family, but keyed on `user_id` (not `id`) and with extra break-glass
+-- columns (`break_glass_eligible`, `break_glass_active`, `granted_by`). Rather than fork a second
+-- admins table, cwfqosp now REUSES that existing table and its existing functions as-is. Only the
+-- two sections below (wifi_qos_reports, wifi_status_reports) were actually created for this
+-- project — `admins`, `is_admin()`, `has_write_access()`, and `admin_audit_log` already existed.
+--
+-- Practical consequences of reusing the shared admins table:
+--   - Any admin bootstrapped for the ISP trackers (role + a row in `admins`) can also access
+--     cwfqosp — it's the same table, not a separate one per site.
+--   - `has_write_access(p_site)` on this project requires `role = 'global_admin' AND
+--     break_glass_active = true`, OR `role = 'country_admin' AND p_site = any(scope)`. A
+--     global_admin whose `break_glass_active` is false will see the cwfqosp app (is_admin() only
+--     checks table membership) but Moderation deletes will silently fail at the RLS layer until
+--     break_glass_active is flipped true for their row.
+--   - cwfqosp/index.html queries `admins` by `.eq("user_id", ...)`, not `.eq("id", ...)`, and
+--     writes to `admin_audit_log` using that table's real columns (`actor_user_id`, `site`), not
+--     the `actor` column the original draft schema below assumed.
+--
+-- ============================================================================
+-- SCENARIO A — this is what's actually live in zwispqosdb. Nothing to run; documented for
+-- reference. If you ever point these apps at a different EXISTING zwispqos-family project, this
+-- is the block to run there (it skips admins/functions/audit log, which that project already has).
+-- ============================================================================
+
+-- (already applied — included here only so this file matches what's live)
+
+-- ============================================================================
+-- SCENARIO B — reference only: if you ever point these apps at a brand-new, empty Supabase
+-- project instead (fully independent of the zwispqos family), run the FULL schema below, which
+-- creates its own id-keyed admins table and matching functions from scratch.
+-- ============================================================================
 
 -- ============================================================================
 -- 1. Admins table + is_admin() — same model as the ISP-tracker family: privilege comes from
