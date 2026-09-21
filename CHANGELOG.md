@@ -3,6 +3,14 @@
 All notable changes to `cwfqosp` are documented here, in the
 [Keep a Changelog](https://keepachangelog.com/) style already used across the `*ispqos*` family.
 
+## [0.4.0] - 2026-09-21
+
+### Changed
+- Removed the header "eyebrow" line (`cwfqosp · privileged backend for cwfqosd`) — the 0.3.0
+  release stripped the footer's scope-disclosure paragraph, but this shorter header line carrying
+  the same substance was missed in that pass, caught when Ed compared the live site against a
+  changelog entry that described the page as fully stripped.
+
 ## [0.3.0] - 2026-09-21
 
 ### Added
