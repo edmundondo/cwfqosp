@@ -54,6 +54,12 @@
     #printArea, #printArea *{visibility:visible;}
     #printArea{position:absolute;left:0;top:0;width:100%;}
   }
+
+  .matokipedo-footer{border-top:1px solid var(--border);padding:20px 16px 40px;color:var(--muted);font-size:12px;text-align:center;}
+  .matokipedo-brand{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px;}
+  .matokipedo-logo{height:22px;width:auto;border-radius:4px;}
+  .matokipedo-tagline{font-size:12px;color:var(--muted);}
+  .matokipedo-footer a{color:var(--accent2);}
 </style>
 </head>
 <body>
@@ -160,6 +166,16 @@
     </div>
   </div>
 </div>
+
+<footer class="matokipedo-footer">
+  <div class="matokipedo-brand">
+    <img src="matokipedo-logo.jpg" alt="Matokipedo" class="matokipedo-logo" onerror="this.style.display='none'">
+    <div class="matokipedo-tagline">Live infrastructure monitoring by Matokipedo</div>
+  </div>
+  Privileged backend for <a href="https://github.com/edmundondo/cwfqosd" target="_blank" rel="noopener">cwfqosd</a> — reads crowd
+  reports collected there, which are themselves built on <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>-tagged locations.
+  Analytics, moderation, and exports only — this app does not query OpenStreetMap/Nominatim/Overpass directly.
+</footer>
 
 <script>
 (function(){
