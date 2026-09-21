@@ -3,6 +3,21 @@
 All notable changes to `cwfqosp` are documented here, in the
 [Keep a Changelog](https://keepachangelog.com/) style already used across the `*ispqos*` family.
 
+## [0.3.0] - 2026-09-21
+
+### Added
+- Footer with Matokipedo brand badge + logo (this app had none before at
+  all). Per explicit request, kept to the brand row only — no attribution
+  paragraph — since this app doesn't query OpenStreetMap/Nominatim/Overpass
+  directly (it only reads `cwfqosd`'s already-collected crowd reports out
+  of Supabase).
+- Added the Matokipedo logo asset (`matokipedo-logo.jpg`).
+
+Also note: this file's own version history had drifted from the page's
+`<meta name="app-version">` tag (CHANGELOG said 0.2.0, the tag still said
+0.1.0) before this entry — corrected as part of this release, not a
+separate fix.
+
 ## [0.2.0] - 2026-09-19
 
 ### Changed
